@@ -1,0 +1,384 @@
+# Structural Explanation and Predictive Analysis of Crime Rates in London
+
+---
+
+## Preparation
+
+- [Github link](https://github.com/Weining5619/DSSS)
+
+- Number of words: ***
+
+- Runtime: 2 m 51 s  (*Memory 24 GB, CPU Apple M3*)
+
+- Coding environment: SDS Docker
+
+- License: this notebook is made available under the [Creative Commons Attribution license](https://creativecommons.org/licenses/by/4.0/) (or other license that you like).
+
+- Additional library *[libraries not included in SDS Docker or not used in this module]*:
+    - **watermark**: A Jupyter Notebook extension for printing timestamps, version numbers, and hardware information.
+    - **nbformat**: A library for reading, writing, and validating *.ipynb* files in Python.
+
+
+---
+
+---
+
+---
+
+## Table of contents
+
+1. [Introduction](#Introduction)
+
+1. [Research questions](#Research-questions)
+
+1. [Data](#Data)
+
+1. [Methodology](#Methodology)
+
+1. [Results and discussion](#Results-and-discussion)
+
+1. [Conclusion](#Conclusion)
+
+1. [References](#References)
+
+---
+
+## 1. Introduction
+
+[[ go back to the top ]](#Table-of-contents)
+
+---
+
+
+Urban crime has long been recognised as a critical social issue affecting residents’ sense of safety and quality of life (Cozens, 2008). Understanding the structural and spatial distribution of urban crime is crucial to public safety governance in the UK. Crime rates are shaped not only by individual behaviour but are also deeply embedded in the socio-economic and residential structures of cities. As a representative global metropolis, London presents an ideal context for such analysis. This study adopts the LSOA as the spatial unit of analysis. Its finer spatial resolution enables the detection of neighbourhood-level variation in social and environmental conditions.
+
+A large body of research confirms that crime is spatially patterned and closely tied to socio-economic disadvantage (Freeman, 1999; Finegan et al., 2020; Pazzona, 2024). Education (Lochner & Moretti, 2004), housing conditions (Cheng & Chen, 2021), and public transport access (Gallison & Andresen, 2017) have all been identified as relevant factors. These structural indicators offer critical insight into the geography of urban crime.
+
+
+---
+
+## 2. Research questions
+
+[[ go back to the top ]](#Table-of-contents)
+
+---
+
+**To what extent can socio-economic and environmental structures explain and predict spatial variation in crime rates across London’s LSOAs?**
+
+To address this overarching research question, the study is guided by the following sub-questions:
+1. Are spatial crime patterns linked to distinctive structural characteristics across neighbourhoods?
+2. Which dimensions of deprivation are most strongly associated with crime?
+3. Do structural variables contain predictive signals for distinguishing between high- and low-crime areas? If so, which modelling approach provides the best predictive performance?
+
+---
+
+## 3. Data
+
+[[ go back to the top ]](#Table-of-contents)
+
+---
+
+This study uses structural variables derived from the 2021 London Census at the LSOA level, including indicators such as low education, non-English-speaking households, and unemployment, along with the Public Transport Accessibility Level (PTAL). In total, nine socio-economic and environmental variables are selected. The variables and their sources are listed in **Table 1**.
+
+
+---
+
+<div align="center"><strong>Table 1.</strong> Summary of input variables</div>
+
+| **Variable**  | **Type** | **Description** | **Notes** | **Source** |
+| :--------------- | :--------------- | :--------------- | :--------------- | :--------------- |
+| **Total crime rate** | Numeric | Crime rate per 1,000 residents, averaged over 2021–2024 [1] and transformed using the Yeo-Johnson method to reduce skewness | Dependent variable | [MPS Recorded Crime: Geographic Breakdown](https://data.london.gov.uk/dataset/recorded_crime_summary) |
+| **Low-education rate** | Numeric | Proportion of residents with no qualifications or only level 1-2 qualifications | Proxy for educational deprivation | [2011 Census](https://www.nomisweb.co.uk/sources/census_2021_bulk) |
+| **Household language isolation rate** | Numeric | Proportion of households where no adult speaks English as a main language | Proxy for cultural isolation and communication barriers | Same as above |
+| **Unemployment rate** | Numeric | Proportion of the economically active population who are unemployed | Proxy for income and labour market deprivation | Same as above |
+| **Car or van unavailability rate** | Numeric | Proportion of households with no access to a car or van | Reflects both mobility limitations and potential economic disadvantage | Same as above |
+| **Overcrowding rate** | Numeric | Proportion of households with occupancy rating of -1 or less | Reflects living environment | Same as above |
+| **Poor health rate** | Numeric | Proportion of residents reporting ‘bad’ or ‘very bad’ health | Proxy for general health deprivation | Same as above |
+| **Disability rate** | Numeric | Proportion of residents with functional limitations legally recognised as disabilities | Captures formally acknowledged structural vulnerability | Same as above |
+| **Long-term sickness rate** [2] | Numeric | Proportion of residents with long-term physical or mental illness not formally classified as disabled | May indicate hidden vulnerability not captured by formal disability status | Same as above |
+| **Public transport accessibility** | Numeric | Public transport accessibility index | Measures urban connectivity and mobility | [GLA PTAL dataset](https://data.london.gov.uk/dataset/public-transport-accessibility-levels) |
+| **Geographical boundary** [3] | Shapefile | LSOA-level boundary geometry for mapping and spatial join | Used for visualisation and spatial analysis | [ONS Open Geography Portal](https://geoportal.statistics.gov.uk/) |
+
+
+> Notes
+> 
+> [1]: The first reason why 2021–2024 period is chosen is because the most recent census was conducted in 2021. Given the short interval, the assumption of stable population characteristics is reasonable. Secondly, 2021 marks the beginning of the post-COVID period, which helps to minimise the confounding effects of the COVID-19 pandemic on crime patterns and socio-demographic variables. Finally, 2024 is the latest year with complete whole-year crime data.
+>
+> [2]: Criminal behaviour is often associated with physical and psychological vulnerability (Tan and Haining, 2016). One potentially overlooked group is those with long-term illness but no official disability status. While chronic or mental health issues may not limit daily activities, they might reduce social adaptability and, under pressure, relate to behaviours such as violence or defensive theft. To explore this possibility, long-term sickness is included as a variable. Both self-rated general health and legally defined disability are retained to offer a broader view of health-related disadvantage.
+> 
+> [3]: Of the 4,835 LSOAs in Greater London, only 4,659 contain valid crime data. Missing areas are typically non-residential (e.g. City of London, parks), or show no recorded crime. These are therefore removed.
+
+
+---
+
+#### Data pre-processing
+
+---
+
+#### Checking Data Distribution
+Some variables, such as Public_Transport_Accessibility and Unemployed_Rate, showed heavy skewness. To reduce their impact, log transformations were applied. This helps stabilise the distribution without removing potentially important features. The results, as shown in **Figure 2**, are within an acceptable range.
+
+---
+
+<div align="center"><strong>Figure 2.</strong> Distribution of variables</div>
+
+---
+
+## 4. Methodology
+
+[[ go back to the top ]](#Table-of-contents)
+
+---
+
+The workflow of methodology is summarised in **Figure 3**.
+
+---
+
+![Methodology_workflow](./Methodology_workflow.png)
+<div align="center"><strong>Figure 3.</strong> Methodology workflow </div>
+
+---
+
+### 4.1. PCA
+
+---
+
+To avoid highly correlated variables dominating the clustering process and skewing results, and to reduce multicollinearity in regression models, the correlation matrix was examine first.
+
+As shown in **Figure 4**, most variables are approximately normally distributed and linearly related. Therefore, Pearson correlation coefficients are calculated to assess pairwise associations (**Figure5**).
+
+
+---
+
+<div align="center"><strong>Figure 4.</strong> Pairwise Relationships of Selected Variables</div>
+
+---
+
+<div align="center"><strong>Figure 5.</strong> Correlation Matrix </div>
+
+---
+
+As shown in the correlation matrix (**Figure 5**), several variables are highly correlated. This would lead to unstable regression coefficients, inflated variable effects, and reduced interpretability.
+
+
+To address this while retaining most of the underlying information, PCA was applied to compress them into a smaller number of uncorrelated components.
+
+---
+
+
+#### PCA
+
+
+---
+
+<div align="center"><strong>Table 2.</strong> PCA Loadings Matrix </div>
+
+---
+
+<div align="center"><strong>Figure 6.</strong> PCA Biplot </div>
+
+---
+
+<div align="center"><strong>Figure 7.</strong> Scree Plot with Elbow Point of PCA </div>
+
+---
+
+Based on the elbow point in the scree plot (**Figure**), the first 4 principal components were retained, explaining 89.86% of the total variance.
+
+ - PC1 reflects general socioeconomic disadvantage, with high scores in areas of low education, unemployment, poor health, overcrowding, and limited transport access.
+ - PC2 captures urban connectivity, positively associated with public transport access, education, and vehicle ownership.
+ - PC3 represents language isolation, driven mainly by the proportion of non-English-speaking households.
+ - PC4 relates to health conditions, influenced by poor health and long-term sickness rates.
+
+PCA effectively reduced dimensionality while preserving key structural information, supporting more stable clustering and regression analyses.
+
+
+
+---
+
+### 4.2. Clustering
+
+---
+
+<div align="center"><strong>Figure 8.</strong> Elbow & Silhouette Analysis </div>
+
+---
+
+As vividly shown in **Figure 8** the elbow method suggests k = 4, and the silhouette scores are relatively high at this point.
+
+---
+
+<div align="center"><strong>Figure 9.</strong> KMeans Clusters </div>
+
+---
+
+The clustering maps (**Figure 9**) reveal some spatial variation over time, particularly in central and edge areas, highlighting the socio-economic heterogeneity across London’s LSOAs. Based on the scores of four PCs above, the KMeans algorithm identifies four distinct residential types:
+
+- **Cluster 0** represents relatively affluent areas with good public transport access and a high proportion of non-English-speaking households.
+- **Cluster 1** includes socioeconomically disadvantaged but lower-density zones, often located at the urban–suburban fringe.
+- **Cluster 2** shows the most advantaged profile—higher income, better education, and stable housing—but with weaker transport connectivity.
+- **Cluster 3** captures areas with severe deprivation, overcrowding, and cultural isolation, likely reflecting high-density social housing.
+
+The spatial pattern of clusters broadly aligns with the crime rate heatmaps (**Figure 10**), especially in inner and outer LSOAs.  Clusters 1 and 3 are associated with higher crime, while Clusters 0 and 2 tend to show lower crime rates, which supports the need for further regression analysis.
+
+
+---
+
+<div align="center"><strong>Figure 10.</strong> London Crime Rate Heatmap </div>
+
+---
+
+### 4.2. Liner Regression
+
+
+---
+
+#### Check Assumptions
+
+---
+
+<div align="center"><strong>Figure 11.</strong> Pairwise Relationships of PCA and Crime Rate </div>
+
+---
+
+<div align="center"><strong>Figure 12.</strong> Homoscedasticity and Normality of residuals test </div>
+
+---
+
+Model assumptions were checked across five aspects.
+
+**A. Linearity**: Scatterplots and fitted lines from **Figure 11** suggest a roughly linear relationship between most PCs and crime rate.
+
+**B. Homoscedasticity**: The residuals vs. fitted plot (**Figure 12 - a**) shows a cloud-like pattern without funnel shapes, indicating fairly constant variance.
+
+**C. Normality of residuals**: The QQ plot (**Figure 12 - b**) and KDE plot (**Figure 12 - c**) show residuals are approximately normal.
+
+**D. Independence of errors**: The Durbin–Watson statistic is below 2 suggests positive autocorrelation, possibly due to the static nature of census-based variables across 2021–2024.
+
+**E. Multicollinearity**: Addressed through PCA.
+
+The model is specified as follows.
+
+---
+
+#### Linear Regression Results
+
+---
+
+The PCA-based OLS regression explains approximately 40.6% of the variance in crime rate (R² = 0.406). All components included in the model are statistically significant (p < 0.001) except for PC4, suggesting that the retained socio-economic structural variables are relevant, but not fully explanatory.
+
+The fitted model:
+
+Crime_Rate_yj = 0.2230 × PC1 + 0.2804 × PC2 + 0.1629 × PC3
+
+---
+
+To enhance interpretability, the original variable-level coefficients were recovered using the formula:
+
+Crime_Rate_yj = X · θ = X · (W × β)
+
+where:
+
+- X is matrix of original (standardised) variables;
+- W is the loadings matrix from PCA;
+- θ represents recovered coefficients for the original variables;
+- β represents the regression coefficients for retained components. 
+  
+This back-transformation allows for estimating the individual effect of each original feature on the crime rate and better understand the structural drivers behind it: transport access, car ownership and Unemployment are among the strongest predictors of crime rate, followed by health-related and culture isolation (non-english) indicators.
+
+---
+
+### 4.4. Machine Learning
+Based on this, a set of predictive models was implemented to further assess the explanatory power of structural variables. Linear Regression, Lasso, Support Vector Regression (SVR), Random Forest, and XGBoost were applied and compared under consistent settings, including the same train-test split, standardised inputs, and evaluation metrics (R² and RMSE).
+
+
+
+---
+
+<div align="center"><strong>Figure 13.</strong> Predictions vs True Values </div>
+
+---
+
+<div align="center"><strong>Figure 14.</strong> Model Performance Comparison: R² and RMSE </div>
+
+---
+
+The results reveal that: 
+
+1. **Linear models** offer limited explanatory power (R² ≈ 0.4), suggesting that while structural variables are relevant to crime rate, many non-linear effects and interactions remain uncaptured. 
+2. Non-linear models, particularly **Random Forest**, show substantial performance gains, highlighting the need to account for more complex patterns when modelling crime. 
+3. **Lasso** performs worest in this context, likely due to the lack of sparsity in the selected features. 
+4. **SVR** and **XGBoost** show moderate performance between Linear models and Random Forest. 
+
+
+Overall, Random Forest or XGBoost is recommended when predicting.
+
+
+---
+
+#### Test Generalization Ability of Random Forest and XGBoost
+
+---
+
+Although the Random Forest model achieved a high R² (0.8555) when refitted on the full dataset, the cross-validated score from GridSearchCV (R² = 0.8049) is more reliable, as it reflects the model’s average generalisation performance.
+
+---
+
+The best XGBoost R² on cross-validation was 0.7359, indicating that structural variables offer strong predictive power for crime rate, even though performance is slightly lower than that of Random Forest.
+
+---
+
+## 5. Results and discussion
+
+[[ go back to the top ]](#Table-of-contents)
+
+---
+
+PC1 reflects broad socio-economic deprivation and is positively associated with crime. PC2 indicates urban connectivity, PC3 captures language isolation, and PC4 relates to health—each contributing differently to spatial crime variation.
+
+Clustering results further reveal spatially distinct neighbourhood types, with high-crime areas concentrated in central London, suggesting persistent structural patterns.
+
+While linear models show limited explanatory power, non-linear predicative models—especially Random Forest—perform substantially better.This performance difference highlights the complex non-linear relationship between structural characteristics and crime.
+
+
+
+
+
+---
+
+## 6. Conclusion
+
+[[ go back to the top ]](#Table-of-contents)
+
+---
+
+This study shows that socio-economic structures shape crime patterns across London’s LSOAs to some extent. While linear models offer limited explanatory power—possibly due to non-linearity or missing variables—machine learning models achieve strong predictive performance, highlighting the value of structural data in forecasting crime.
+
+
+Future work may incorporate longitudinal data, geographically weighted regression (GWR), or non-linear interaction modelling to further enhance explanatory power.
+
+---
+
+## 7.References
+
+[[ go back to the top ]](#Table-of-contents)
+
+---
+
+Cheng, T. and Chen, T. (2021) ‘Urban crime and security’, in Shi, W. et al. (eds) *Urban Informatics*. Singapore: Springer, pp. 213–228. doi: 10.1007/978-981-15-8983-6_14.
+
+Cozens, P. (2008) ‘Crime prevention through environmental design in western australia: Planning for sustainable urban futures’, *International Journal of Sustainable Development and Planning - Int J Sustain Dev Plann*, 3, pp. 272–292. doi: 10.2495/SDP-V3-N3-272-292.
+
+Finegan, M., Firth ,Nick and and Delgadillo, J. (2020) ‘Adverse impact of neighbourhood socioeconomic deprivation on psychological treatment outcomes: the role of area-level income and crime’, *Psychotherapy Research*, 30(4), pp. 546–554. doi: 10.1080/10503307.2019.1649500.
+
+Freeman, R. B. (1999) ‘Chapter 52 The economics of crime’, in *Handbook of Labor Economics*. Elsevier, pp. 3529–3571. doi: 10.1016/S1573-4463(99)30043-2.
+
+Gallison, J. K. and Andresen, M. A. (2017) ‘Crime and Public Transportation: A Case Study of Ottawa’s O-Train System’, *Canadian Journal of Criminology and Criminal Justice*, 59(1), pp. 94–122. doi: 10.3138/cjccj.2016.E35.
+
+Lochner, L. and Moretti, E. (2004) ‘The Effect of Education on Crime: Evidence from Prison Inmates, Arrests, and Self-Reports’, *American Economic Review*, 94(1), pp. 155–189. doi: 10.1257/000282804322970751.
+
+Pazzona, M. (2024) ‘Revisiting the Income Inequality-Crime Puzzle’, *World Development*, 176, p. 106520. doi: 10.1016/j.worlddev.2023.106520.
+
+Reilly, B. and Witt, R. (1996) ‘Crime, deterrence and unemployment in England and wales: An empirical analysis’, *Bulletin of Economic Research*, 48(2), pp. 137–159. doi: 10.1111/j.1467-8586.1996.tb00629.x.
+
+Tan, S.-Y. and Haining, R. (2016) ‘Crime victimization and the implications for individual health and wellbeing: A sheffield case study’, *Social Science & Medicine*, 167, pp. 128–139. doi: 10.1016/j.socscimed.2016.08.018.
